@@ -1,4 +1,7 @@
-const API_URL = 'http://localhost:5000/api';
+const API_URL =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:5000/api'
+    : `${window.location.origin}/api`;
 
 const config = {
   apiUrl: API_URL,
