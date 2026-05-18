@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario - Sistema de Gestión de Ventas</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <nav class="sidebar">
+            <div class="logo">
+                <h2>🛒 Ventas</h2>
+            </div>
+            <ul class="menu">
+                <li><a href="dashboard.html">📊 Dashboard</a></li>
+                <li><a href="clientes.html">👥 Clientes</a></li>
+                <li class="active"><a href="inventario.html">📦 Inventario</a></li>
+                <li><a href="ventas.html">💰 Ventas</a></li>
+                <li><a href="caja.html">💵 Caja</a></li>
+            </ul>
+            <div class="user-info">
+                <p id="userName"></p>
+                <button onclick="logout()" class="btn-logout">Cerrar Sesión</button>
+            </div>
+        </nav>
+        
+        <main class="main-content">
+            <header>
+                <h1>Gestión de Inventario</h1>
+                <button class="btn-primary" onclick="mostrarFormulario()">+ Nuevo Producto</button>
+            </header>
+            
+            <!-- Alertas de stock bajo -->
+            <div id="alertaStockBajo" class="alert alert-warning" style="display: none;">
+                <strong>⚠️ Alerta:</strong> Hay <span id="cantidadStockBajo">0</span> productos con stock bajo.
+                <button onclick="verStockBajo()" class="btn-link">Ver productos</button>
+            </div>
+            
+            <!-- Formulario de Producto -->
+            <div id="formularioProducto" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close" onclick="cerrarFormulario()">&times;</span>
+                    <h2 id="tituloFormulario">Nuevo Producto</h2>
+                    
+                    <form id="productoForm">
+                        <input type="hidden" id="productoId">
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="codigo">Código *</label>
+                                <input type="text" id="codigo" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="categoria">Categoría *</label>
+                                <select id="categoria" required>
+                                    <option value="">Seleccione...</option>
+                                    <option value="Electrónica">Electrónica</option>
+                                    <option value="Ropa">Ropa</option>
+                                    <option value="Alimentos">Alimentos</option>
+                                    <option value="Hogar">Hogar</option>
+                                    <option value="Deportes">Deportes</option>
+                                    <option value="Otros">Otros</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="nombre">Nombre del Producto *</label>
+                            <input type="text" id="nombre" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="descripcion">Descripción</label>
+                            <textarea id="descripcion" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="costo">Costo ($) *</label>
+                                <input type="number" id="costo" step="0.01" min="0" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="precio">Precio de Venta ($) *</label>
+                                <input type="number" id="precio" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="stock">Stock Inicial *</label>
+                                <input type="number" id="stock" min="0" required value="0">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="stockMinimo">Stock Mínimo *</label>
+                                <input type="number" id="stockMinimo" min="0" required value="5">
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" onclick="cerrarFormulario()">Cancelar</button>
+                            <button type="submit" class="btn-primary">Guardar</button>
+                        </div>
+                    </form>
+                    
+                    <div id="formMessage" class="message"></div>
+                </div>
+            </div>
+            
+            <!-- Modal para ajustar stock -->
+            <div id="modalAjustarStock" class="modal" style="display: none;">
+                <div class="modal-content" style="max-width: 400px;">
+                    <span class="close" onclick="cerrarModalStock()">&times;</span>
+                    <h2>Ajustar Stock</h2>
+                    
+                    <p id="productoStockInfo"></p>
+                    
+                    <div class="form-group">
+                        <label for="cantidadAjuste">Cantidad</label>
+                        <input type="number" id="cantidadAjuste" min="1" required>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button onclick="ajustarStockProducto('agregar')" class="btn-primary">➕ Agregar</button>
+                        <button onclick="ajustarStockProducto('quitar')" class="btn-secondary">➖ Quitar</button>
+                    </div>
+                    
+                    <div id="stockMessage" class="message"></div>
+                </div>
+            </div>
+            
+            <!-- Búsqueda -->
+            <div class="search-box">
+                <input type="text" id="buscarCodigo" placeholder="Buscar por código...">
+                <button onclick="buscarProducto()" class="btn-primary">🔍 Buscar</button>
+                <button onclick="cargarProductos()" class="btn-secondary">Ver Todos</button>
+            </div>
+            
+            <!-- Tabla de Productos -->
+            <div class="table-container">
+                <table id="tablaProductos">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Precio</th>
+                            <th>Stock</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productosBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center;">Cargando...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+    <script src="js/validaciones.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/productos.js"></script>
+
+    <script>
+        // Verificar autenticación
+        checkAuth();
+        
+        // Mostrar información del usuario
+        const user = getUser();
+        if (user) {
+            document.getElementById('userName').textContent = user.nombre;
+        }
+        
+        // Variable global para el producto seleccionado
+        let productoSeleccionado = null;
+        
+        // Cargar productos al iniciar
+        cargarProductos();
+        
+        // Función para cargar productos
+        async function cargarProductos() {
+            const tbody = document.getElementById('productosBody');
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Cargando...</td></tr>';
+            
+            try {
+                const response = await getProductos();
+                const productos = response.data.productos;
+                const stockBajo = response.data.stockBajo;
+                
+                // Mostrar alerta de stock bajo
+                if (stockBajo > 0) {
+                    document.getElementById('alertaStockBajo').style.display = 'block';
+                    document.getElementById('cantidadStockBajo').textContent = stockBajo;
+                } else {
+                    document.getElementById('alertaStockBajo').style.display = 'none';
+                }
+                
+                if (productos.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No hay productos registrados</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = '';
+                productos.forEach(producto => {
+                    const tr = document.createElement('tr');
+                    const estadoStock = producto.stockBajo ? 
+                        '<span style="color: red; font-weight: bold;">⚠️ Bajo</span>' : 
+                        '<span style="color: green;">✓ OK</span>';
+                    
+                    tr.innerHTML = `
+                        <td>${producto.codigo}</td>
+                        <td>${producto.nombre}</td>
+                        <td>${producto.categoria}</td>
+                        <td>$${producto.precio.toFixed(2)}</td>
+                        <td>
+                            <strong>${producto.stock}</strong> unidades
+                            <button onclick="abrirModalStock('${producto._id}', '${producto.nombre}', ${producto.stock})" class="btn-icon" title="Ajustar stock">⚙️</button>
+                        </td>
+                        <td>${estadoStock}</td>
+                        <td class="actions">
+                            <button onclick="editarProducto('${producto._id}')" class="btn-icon" title="Editar">✏️</button>
+                            <button onclick="eliminarProducto('${producto._id}')" class="btn-icon" title="Eliminar">🗑️</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: red;">Error: ${error.message}</td></tr>`;
+            }
+        }
+        
+        // Función para ver productos con stock bajo
+        async function verStockBajo() {
+            const tbody = document.getElementById('productosBody');
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Cargando...</td></tr>';
+            
+            try {
+                const response = await getProductosStockBajo();
+                const productos = response.data.productos;
+                
+                if (productos.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No hay productos con stock bajo</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = '';
+                productos.forEach(producto => {
+                    const tr = document.createElement('tr');
+                    tr.style.backgroundColor = '#fff3cd';
+                    tr.innerHTML = `
+                        <td>${producto.codigo}</td>
+                        <td>${producto.nombre}</td>
+                        <td>${producto.categoria}</td>
+                        <td>$${producto.precio.toFixed(2)}</td>
+                        <td>
+                            <strong style="color: red;">${producto.stock}</strong> unidades
+                            <button onclick="abrirModalStock('${producto._id}', '${producto.nombre}', ${producto.stock})" class="btn-icon" title="Ajustar stock">⚙️</button>
+                        </td>
+                        <td><span style="color: red; font-weight: bold;">⚠️ Bajo</span></td>
+                        <td class="actions">
+                            <button onclick="editarProducto('${producto._id}')" class="btn-icon" title="Editar">✏️</button>
+                            <button onclick="eliminarProducto('${producto._id}')" class="btn-icon" title="Eliminar">🗑️</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: red;">Error: ${error.message}</td></tr>`;
+            }
+        }
+        
+        // Función para mostrar formulario
+        function mostrarFormulario() {
+            document.getElementById('formularioProducto').style.display = 'block';
+            document.getElementById('tituloFormulario').textContent = 'Nuevo Producto';
+            document.getElementById('productoForm').reset();
+            document.getElementById('productoId').value = '';
+            document.getElementById('stock').value = '0';
+            document.getElementById('stockMinimo').value = '5';
+        }
+        
+        // Función para cerrar formulario
+        function cerrarFormulario() {
+            document.getElementById('formularioProducto').style.display = 'none';
+            document.getElementById('formMessage').textContent = '';
+        }
+        
+        // Función para enviar formulario
+        document.getElementById('productoForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const productoData = {
+                codigo: document.getElementById('codigo').value,
+                nombre: document.getElementById('nombre').value,
+                descripcion: document.getElementById('descripcion').value,
+                categoria: document.getElementById('categoria').value,
+                precio: parseFloat(document.getElementById('precio').value),
+                costo: parseFloat(document.getElementById('costo').value),
+                stock: parseInt(document.getElementById('stock').value),
+                stockMinimo: parseInt(document.getElementById('stockMinimo').value)
+            };
+            
+            const productoId = document.getElementById('productoId').value;
+            const messageDiv = document.getElementById('formMessage');
+            
+            try {
+                messageDiv.textContent = 'Guardando...';
+                messageDiv.className = 'message info';
+                
+                let response;
+                if (productoId) {
+                    response = await updateProducto(productoId, productoData);
+                } else {
+                    response = await createProducto(productoData);
+                }
+                
+                messageDiv.textContent = '✅ ' + response.message;
+                messageDiv.className = 'message success';
+                
+                setTimeout(() => {
+                    cerrarFormulario();
+                    cargarProductos();
+                }, 1500);
+            } catch (error) {
+                messageDiv.textContent = '❌ ' + error.message;
+                messageDiv.className = 'message error';
+            }
+        });
+        
+        // Función para buscar producto
+        async function buscarProducto() {
+            const codigo = document.getElementById('buscarCodigo').value.trim();
+            
+            if (!codigo) {
+                alert('Por favor ingresa un código');
+                return;
+            }
+            
+            const tbody = document.getElementById('productosBody');
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Buscando...</td></tr>';
+            
+            try {
+                const response = await buscarProductoPorCodigo(codigo);
+                const producto = response.data.producto;
+                
+                const estadoStock = producto.stockBajo ? 
+                    '<span style="color: red; font-weight: bold;">⚠️ Bajo</span>' : 
+                    '<span style="color: green;">✓ OK</span>';
+                
+                tbody.innerHTML = `
+                    <tr>
+                        <td>${producto.codigo}</td>
+                        <td>${producto.nombre}</td>
+                        <td>${producto.categoria}</td>
+                        <td>$${producto.precio.toFixed(2)}</td>
+                        <td>
+                            <strong>${producto.stock}</strong> unidades
+                            <button onclick="abrirModalStock('${producto._id}', '${producto.nombre}', ${producto.stock})" class="btn-icon" title="Ajustar stock">⚙️</button>
+                        </td>
+                        <td>${estadoStock}</td>
+                        <td class="actions">
+                            <button onclick="editarProducto('${producto._id}')" class="btn-icon" title="Editar">✏️</button>
+                            <button onclick="eliminarProducto('${producto._id}')" class="btn-icon" title="Eliminar">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: red;">❌ ${error.message}</td></tr>`;
+            }
+        }
+        
+        // Función para editar producto
+        async function editarProducto(id) {
+            try {
+                const response = await getProducto(id);
+                const producto = response.data.producto;
+                
+                document.getElementById('productoId').value = producto._id;
+                document.getElementById('codigo').value = producto.codigo;
+                document.getElementById('nombre').value = producto.nombre;
+                document.getElementById('descripcion').value = producto.descripcion || '';
+                document.getElementById('categoria').value = producto.categoria;
+                document.getElementById('precio').value = producto.precio;
+                document.getElementById('costo').value = producto.costo;
+                document.getElementById('stock').value = producto.stock;
+                document.getElementById('stockMinimo').value = producto.stockMinimo;
+                
+                document.getElementById('tituloFormulario').textContent = 'Editar Producto';
+                document.getElementById('formularioProducto').style.display = 'block';
+            } catch (error) {
+                alert('Error al cargar producto: ' + error.message);
+            }
+        }
+        
+        // Función para eliminar producto
+        async function eliminarProducto(id) {
+            if (!confirm('¿Estás seguro de eliminar este producto?')) {
+                return;
+            }
+            
+            try {
+                await deleteProducto(id);
+                alert('✅ Producto eliminado exitosamente');
+                cargarProductos();
+            } catch (error) {
+                alert('❌ Error al eliminar: ' + error.message);
+            }
+        }
+        
+        // Función para abrir modal de ajuste de stock
+        function abrirModalStock(id, nombre, stockActual) {
+            productoSeleccionado = id;
+            document.getElementById('productoStockInfo').innerHTML = `
+                <strong>Producto:</strong> ${nombre}<br>
+                <strong>Stock actual:</strong> ${stockActual} unidades
+            `;
+            document.getElementById('cantidadAjuste').value = '';
+            document.getElementById('stockMessage').textContent = '';
+            document.getElementById('modalAjustarStock').style.display = 'block';
+        }
+        
+        // Función para cerrar modal de stock
+        function cerrarModalStock() {
+            document.getElementById('modalAjustarStock').style.display = 'none';
+            productoSeleccionado = null;
+        }
+        
+        // Función para ajustar stock
+        async function ajustarStockProducto(tipo) {
+            const cantidad = parseInt(document.getElementById('cantidadAjuste').value);
+            const messageDiv = document.getElementById('stockMessage');
+            
+            if (!cantidad || cantidad <= 0) {
+                messageDiv.textContent = '❌ Ingresa una cantidad válida';
+                messageDiv.className = 'message error';
+                return;
+            }
+            
+            try {
+                messageDiv.textContent = 'Ajustando...';
+                messageDiv.className = 'message info';
+                
+                const response = await ajustarStock(productoSeleccionado, cantidad, tipo);
+                
+                messageDiv.textContent = '✅ ' + response.message;
+                messageDiv.className = 'message success';
+                
+                setTimeout(() => {
+                    cerrarModalStock();
+                    cargarProductos();
+                }, 1500);
+            } catch (error) {
+                messageDiv.textContent = '❌ ' + error.message;
+                messageDiv.className = 'message error';
+            }
+        }
+    </script>
+</body>
+</html>

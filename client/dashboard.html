@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema de Gestión de Ventas</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <nav class="sidebar">
+            <div class="logo">
+                <h2>🛒 Ventas</h2>
+            </div>
+            <ul class="menu">
+                <li class="active"><a href="dashboard.html">📊 Dashboard</a></li>
+                <li><a href="clientes.html">👥 Clientes</a></li>
+                <li><a href="inventario.html">📦 Inventario</a></li>
+                <li><a href="ventas.html">💰 Ventas</a></li>
+                <li><a href="caja.html">💵 Caja</a></li>
+            </ul>
+            <div class="user-info">
+                <p id="userName"></p>
+                <button onclick="logout()" class="btn-logout">Cerrar Sesión</button>
+            </div>
+        </nav>
+        
+        <main class="main-content">
+            <header>
+                <h1>Dashboard</h1>
+            </header>
+            
+            <div class="welcome-message">
+                <h2>Bienvenido, <span id="userNameDisplay"></span>! 👋</h2>
+                <p>Sistema de Gestión de Ventas e Inventario</p>
+            </div>
+            
+            <div class="cards-grid">
+                <div class="card">
+                    <h3>Clientes</h3>
+                    <p class="card-number">0</p>
+                    <a href="clientes.html">Ver detalles →</a>
+                </div>
+                
+                <div class="card">
+                    <h3>Productos</h3>
+                    <p class="card-number">0</p>
+                    <a href="inventario.html">Ver detalles →</a>
+                </div>
+                
+                <div class="card">
+                    <h3>Ventas Hoy</h3>
+                    <p class="card-number">$0</p>
+                    <a href="ventas.html">Ver detalles →</a>
+                </div>
+                
+                <div class="card">
+                    <h3>Total en Caja</h3>
+                    <p class="card-number">$0</p>
+                    <a href="caja.html">Ver detalles →</a>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="js/validaciones.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/clientes.js"></script>
+    <script src="js/productos.js"></script>
+    <script src="js/caja.js"></script>
+    <script>
+        // Verificar autenticación
+        checkAuth();
+        
+        // Mostrar información del usuario
+        const user = getUser();
+        if (user) {
+            document.getElementById('userName').textContent = user.nombre;
+            document.getElementById('userNameDisplay').textContent = user.nombre;
+        }
+        
+        // Cargar estadísticas del dashboard
+        cargarEstadisticas();
+        
+        async function cargarEstadisticas() {
+            try {
+                // Cargar clientes
+                const responseClientes = await getClientes();
+                const cantidadClientes = responseClientes.data.total || 0;
+                document.querySelector('.cards-grid .card:nth-child(1) .card-number').textContent = cantidadClientes;
+                
+                // Cargar productos
+                const responseProductos = await getProductos();
+                const cantidadProductos = responseProductos.data.total || 0;
+                document.querySelector('.cards-grid .card:nth-child(2) .card-number').textContent = cantidadProductos;
+                
+                // Cargar saldo de caja
+                const responseCaja = await getSaldoCaja();
+                const ventasHoy = responseCaja.data.totalHoy || '0.00';
+                const saldoTotal = responseCaja.data.saldoTotal || '0.00';
+                
+                document.querySelector('.cards-grid .card:nth-child(3) .card-number').textContent = `$${ventasHoy}`;
+                document.querySelector('.cards-grid .card:nth-child(4) .card-number').textContent = `$${saldoTotal}`;
+                
+            } catch (error) {
+                console.error('Error al cargar estadísticas:', error);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caja - Sistema de Gestión de Ventas</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <style>
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .stat-card .number {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 0;
+        }
+        
+        .filtros-box {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .metodo-pago-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .metodo-pago-card strong {
+            font-size: 18px;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <nav class="sidebar">
+            <div class="logo">
+                <h2>🛒 Ventas</h2>
+            </div>
+            <ul class="menu">
+                <li><a href="dashboard.html">📊 Dashboard</a></li>
+                <li><a href="clientes.html">👥 Clientes</a></li>
+                <li><a href="inventario.html">📦 Inventario</a></li>
+                <li><a href="ventas.html">💰 Ventas</a></li>
+                <li class="active"><a href="caja.html">💵 Caja</a></li>
+            </ul>
+            <div class="user-info">
+                <p id="userName"></p>
+                <button onclick="logout()" class="btn-logout">Cerrar Sesión</button>
+            </div>
+        </nav>
+        
+        <main class="main-content">
+            <header>
+                <h1>Gestión de Caja</h1>
+                <button onclick="descargarReporteActual()" class="btn-primary">📥 Descargar Reporte</button>
+            </header>
+            
+            <!-- Tarjetas de estadísticas -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>💰 Saldo Total</h3>
+                    <p class="number" id="saldoTotal">$0.00</p>
+                </div>
+                
+                <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <h3>📊 Total Ventas</h3>
+                    <p class="number" id="totalVentas">0</p>
+                </div>
+                
+                <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                    <h3>🔥 Ventas Hoy</h3>
+                    <p class="number" id="ventasHoy">0</p>
+                </div>
+                
+                <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                    <h3>💵 Total Hoy</h3>
+                    <p class="number" id="totalHoy">$0.00</p>
+                </div>
+            </div>
+            
+            <!-- Filtros -->
+            <div class="filtros-box">
+                <h3>Filtrar Histórico</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fechaInicio">Fecha Inicio</label>
+                        <input type="date" id="fechaInicio">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="fechaFin">Fecha Fin</label>
+                        <input type="date" id="fechaFin">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="metodoPagoFiltro">Método de Pago</label>
+                        <select id="metodoPagoFiltro">
+                            <option value="Todos">Todos</option>
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Tarjeta">Tarjeta</option>
+                            <option value="Transferencia">Transferencia</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" style="display: flex; align-items: flex-end;">
+                        <button onclick="aplicarFiltros()" class="btn-primary">🔍 Filtrar</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Resumen por método de pago -->
+            <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                <h3>Ventas por Método de Pago</h3>
+                <div id="resumenMetodosPago">
+                    <div class="metodo-pago-card">
+                        <span>💵 Efectivo:</span>
+                        <strong id="totalEfectivo">$0.00</strong>
+                    </div>
+                    <div class="metodo-pago-card">
+                        <span>💳 Tarjeta:</span>
+                        <strong id="totalTarjeta">$0.00</strong>
+                    </div>
+                    <div class="metodo-pago-card">
+                        <span>🏦 Transferencia:</span>
+                        <strong id="totalTransferencia">$0.00</strong>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tabla de histórico -->
+            <div class="table-container">
+                <h3 style="padding: 15px; margin: 0;">Histórico de Ventas</h3>
+                <table id="tablaHistorico">
+                    <thead>
+                        <tr>
+                            <th>Factura</th>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Método de Pago</th>
+                            <th>Subtotal</th>
+                            <th>Impuesto</th>
+                            <th>Total</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historicoBody">
+                        <tr>
+                            <td colspan="8" style="text-align: center;">Cargando...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+    <script src="js/validaciones.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/caja.js"></script>
+    <script src="js/ventas.js"></script>
+    <script>
+        // Verificar autenticación
+        checkAuth();
+        
+        // Mostrar información del usuario
+        const user = getUser();
+        if (user) {
+            document.getElementById('userName').textContent = user.nombre;
+        }
+        
+        // Cargar datos al iniciar
+        cargarSaldo();
+        cargarHistorico();
+        
+        // Función para cargar saldo
+        async function cargarSaldo() {
+            try {
+                const response = await getSaldoCaja();
+                const data = response.data;
+                
+                document.getElementById('saldoTotal').textContent = `$${data.saldoTotal}`;
+                document.getElementById('totalVentas').textContent = data.cantidadVentas;
+                document.getElementById('ventasHoy').textContent = data.ventasHoy;
+                document.getElementById('totalHoy').textContent = `$${data.totalHoy}`;
+            } catch (error) {
+                console.error('Error al cargar saldo:', error);
+            }
+        }
+        
+        // Función para cargar histórico
+        async function cargarHistorico(filtros = {}) {
+            const tbody = document.getElementById('historicoBody');
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Cargando...</td></tr>';
+            
+            try {
+                const response = await getHistoricoCaja(filtros);
+                const ventas = response.data.ventas;
+                const estadisticas = response.data.estadisticas;
+                
+                // Actualizar resumen por método de pago
+                document.getElementById('totalEfectivo').textContent = `$${estadisticas.porMetodoPago.Efectivo}`;
+                document.getElementById('totalTarjeta').textContent = `$${estadisticas.porMetodoPago.Tarjeta}`;
+                document.getElementById('totalTransferencia').textContent = `$${estadisticas.porMetodoPago.Transferencia}`;
+                
+                if (ventas.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No hay ventas registradas</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = '';
+                ventas.forEach(venta => {
+                    const tr = document.createElement('tr');
+                    const fecha = new Date(venta.createdAt).toLocaleDateString('es-CO');
+                    
+                    tr.innerHTML = `
+                        <td><strong>${venta.numeroFactura}</strong></td>
+                        <td>${fecha}</td>
+                        <td>${venta.cliente.nombre}</td>
+                        <td>${venta.metodoPago}</td>
+                        <td>$${venta.subtotal.toFixed(2)}</td>
+                        <td>$${venta.impuesto.toFixed(2)}</td>
+                        <td><strong>$${venta.total.toFixed(2)}</strong></td>
+                        <td class="actions">
+                            <button onclick="descargarFacturaVenta('${venta._id}')" class="btn-icon" title="Descargar Factura">📄</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: red;">Error: ${error.message}</td></tr>`;
+            }
+        }
+        
+        // Función para aplicar filtros
+        function aplicarFiltros() {
+            const filtros = {
+                fechaInicio: document.getElementById('fechaInicio').value,
+                fechaFin: document.getElementById('fechaFin').value,
+                metodoPago: document.getElementById('metodoPagoFiltro').value
+            };
+            
+            cargarHistorico(filtros);
+        }
+        
+        // Función para descargar factura
+        async function descargarFacturaVenta(ventaId) {
+            try {
+                const token = getToken();
+                const response = await fetch(config.endpoints.ventas.descargarFactura(ventaId), {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al descargar la factura');
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Factura-${ventaId}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                alert('❌ Error al descargar factura: ' + error.message);
+            }
+        }
+        
+        // Función para descargar reporte actual
+        async function descargarReporteActual() {
+            const filtros = {
+                fechaInicio: document.getElementById('fechaInicio').value,
+                fechaFin: document.getElementById('fechaFin').value
+            };
+            
+            try {
+                await descargarReporte(filtros);
+                alert('✅ Reporte descargado exitosamente');
+            } catch (error) {
+                alert('❌ Error al descargar reporte: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clientes - Sistema de Gestión de Ventas</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <nav class="sidebar">
+            <div class="logo">
+                <h2>🛒 Ventas</h2>
+            </div>
+            <ul class="menu">
+                <li><a href="dashboard.html">📊 Dashboard</a></li>
+                <li class="active"><a href="clientes.html">👥 Clientes</a></li>
+                <li><a href="inventario.html">📦 Inventario</a></li>
+                <li><a href="ventas.html">💰 Ventas</a></li>
+                <li><a href="caja.html">💵 Caja</a></li>
+            </ul>
+            <div class="user-info">
+                <p id="userName"></p>
+                <button onclick="logout()" class="btn-logout">Cerrar Sesión</button>
+            </div>
+        </nav>
+        
+        <main class="main-content">
+            <header>
+                <h1>Gestión de Clientes</h1>
+                <button class="btn-primary" onclick="mostrarFormulario()">+ Nuevo Cliente</button>
+            </header>
+            
+            <!-- Formulario de Cliente -->
+            <div id="formularioCliente" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close" onclick="cerrarFormulario()">&times;</span>
+                    <h2 id="tituloFormulario">Nuevo Cliente</h2>
+                    
+                    <form id="clienteForm" enctype="multipart/form-data">
+                        <input type="hidden" id="clienteId">
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="nombre">Nombre Completo *</label>
+                                <input type="text" id="nombre" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="cedula">Cédula *</label>
+                                <input type="text" id="cedula" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="email">Email *</label>
+                                <input type="email" id="email" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="telefono">Teléfono *</label>
+                                <input type="tel" id="telefono" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="direccion">Dirección *</label>
+                            <input type="text" id="direccion" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="ciudad">Ciudad *</label>
+                            <input type="text" id="ciudad" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="rutFile">RUT (PDF)</label>
+                            <input type="file" id="rutFile" accept=".pdf">
+                            <small>Máximo 5MB - Solo archivos PDF</small>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" onclick="cerrarFormulario()">Cancelar</button>
+                            <button type="submit" class="btn-primary">Guardar</button>
+                        </div>
+                    </form>
+                    
+                    <div id="formMessage" class="message"></div>
+                </div>
+            </div>
+            
+            <!-- Búsqueda -->
+            <div class="search-box">
+                <input type="text" id="buscarCedula" placeholder="Buscar por cédula...">
+                <button onclick="buscarCliente()" class="btn-primary">🔍 Buscar</button>
+                <button onclick="cargarClientes()" class="btn-secondary">Ver Todos</button>
+            </div>
+            
+            <!-- Tabla de Clientes -->
+            <div class="table-container">
+                <table id="tablaClientes">
+                    <thead>
+                        <tr>
+                            <th>Cédula</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Teléfono</th>
+                            <th>Ciudad</th>
+                            <th>RUT</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clientesBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center;">Cargando...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/clientes.js"></script>
+    <script>
+    // Verificar autenticación
+    checkAuth();
+    
+    // Mostrar información del usuario
+    const user = getUser();
+    if (user) {
+        document.getElementById('userName').textContent = user.nombre;
+    }
+    
+    // Cargar clientes al iniciar
+    cargarClientes();
+    
+    // Función para cargar clientes
+    async function cargarClientes() {
+        const tbody = document.getElementById('clientesBody');
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Cargando...</td></tr>';
+        
+        try {
+            const response = await getClientes();
+            const clientes = response.data.clientes;
+            
+            if (clientes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No hay clientes registrados</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            clientes.forEach(cliente => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${cliente.cedula}</td>
+                    <td>${cliente.nombre}</td>
+                    <td>${cliente.email}</td>
+                    <td>${cliente.telefono}</td>
+                    <td>${cliente.ciudad}</td>
+                    <td>
+                        ${cliente.rutFile ? 
+                            `<button onclick="descargarRut('${cliente._id}')" class="btn-link" style="border: none; background: none; cursor: pointer;">📄 Ver RUT</button>` : 
+                            '<span style="color: #999;">Sin RUT</span>'}
+                    </td>
+                    <td class="actions">
+                        <button onclick="editarCliente('${cliente._id}')" class="btn-icon" title="Editar">✏️</button>
+                        <button onclick="eliminarCliente('${cliente._id}')" class="btn-icon" title="Eliminar">🗑️</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: red;">Error: ${error.message}</td></tr>`;
+        }
+    }
+    
+    // Función para descargar RUT
+    async function descargarRut(clienteId) {
+        try {
+            const token = getToken();
+            const response = await fetch(config.endpoints.clientes.descargarRut(clienteId), {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al descargar el RUT');
+            }
+
+            // Obtener el blob del archivo
+            const blob = await response.blob();
+            
+            // Crear URL temporal
+            const url = window.URL.createObjectURL(blob);
+            
+            // Crear enlace temporal y hacer click
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `RUT-${clienteId}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            
+            // Limpiar
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            alert('❌ Error al descargar RUT: ' + error.message);
+        }
+    }
+    
+    // Función para mostrar formulario
+    function mostrarFormulario() {
+        document.getElementById('formularioCliente').style.display = 'block';
+        document.getElementById('tituloFormulario').textContent = 'Nuevo Cliente';
+        document.getElementById('clienteForm').reset();
+        document.getElementById('clienteId').value = '';
+    }
+    
+    // Función para cerrar formulario
+    function cerrarFormulario() {
+        document.getElementById('formularioCliente').style.display = 'none';
+        document.getElementById('formMessage').textContent = '';
+    }
+    
+    // Función para enviar formulario
+    document.getElementById('clienteForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData();
+        formData.append('nombre', document.getElementById('nombre').value);
+        formData.append('cedula', document.getElementById('cedula').value);
+        formData.append('email', document.getElementById('email').value);
+        formData.append('telefono', document.getElementById('telefono').value);
+        formData.append('direccion', document.getElementById('direccion').value);
+        formData.append('ciudad', document.getElementById('ciudad').value);
+        
+        const rutFile = document.getElementById('rutFile').files[0];
+        if (rutFile) {
+            formData.append('rutFile', rutFile);
+        }
+        
+        const clienteId = document.getElementById('clienteId').value;
+        const messageDiv = document.getElementById('formMessage');
+        
+        try {
+            messageDiv.textContent = 'Guardando...';
+            messageDiv.className = 'message info';
+            
+            let response;
+            if (clienteId) {
+                response = await updateCliente(clienteId, formData);
+            } else {
+                response = await createCliente(formData);
+            }
+            
+            messageDiv.textContent = '✅ ' + response.message;
+            messageDiv.className = 'message success';
+            
+            setTimeout(() => {
+                cerrarFormulario();
+                cargarClientes();
+            }, 1500);
+        } catch (error) {
+            messageDiv.textContent = '❌ ' + error.message;
+            messageDiv.className = 'message error';
+        }
+    });
+    
+    // Función para buscar cliente
+    async function buscarCliente() {
+        const cedula = document.getElementById('buscarCedula').value.trim();
+        
+        if (!cedula) {
+            alert('Por favor ingresa una cédula');
+            return;
+        }
+        
+        const tbody = document.getElementById('clientesBody');
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Buscando...</td></tr>';
+        
+        try {
+            const response = await buscarClientePorCedula(cedula);
+            const cliente = response.data.cliente;
+            
+            tbody.innerHTML = `
+                <tr>
+                    <td>${cliente.cedula}</td>
+                    <td>${cliente.nombre}</td>
+                    <td>${cliente.email}</td>
+                    <td>${cliente.telefono}</td>
+                    <td>${cliente.ciudad}</td>
+                    <td>
+                        ${cliente.rutFile ? 
+                            `<button onclick="descargarRut('${cliente._id}')" class="btn-link" style="border: none; background: none; cursor: pointer;">📄 Ver RUT</button>` : 
+                            '<span style="color: #999;">Sin RUT</span>'}
+                    </td>
+                    <td class="actions">
+                        <button onclick="editarCliente('${cliente._id}')" class="btn-icon" title="Editar">✏️</button>
+                        <button onclick="eliminarCliente('${cliente._id}')" class="btn-icon" title="Eliminar">🗑️</button>
+                    </td>
+                </tr>
+            `;
+        } catch (error) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: red;">❌ ${error.message}</td></tr>`;
+        }
+    }
+    
+    // Función para editar cliente
+    async function editarCliente(id) {
+        try {
+            const response = await getCliente(id);
+            const cliente = response.data.cliente;
+            
+            document.getElementById('clienteId').value = cliente._id;
+            document.getElementById('nombre').value = cliente.nombre;
+            document.getElementById('cedula').value = cliente.cedula;
+            document.getElementById('email').value = cliente.email;
+            document.getElementById('telefono').value = cliente.telefono;
+            document.getElementById('direccion').value = cliente.direccion;
+            document.getElementById('ciudad').value = cliente.ciudad;
+            
+            document.getElementById('tituloFormulario').textContent = 'Editar Cliente';
+            document.getElementById('formularioCliente').style.display = 'block';
+        } catch (error) {
+            alert('Error al cargar cliente: ' + error.message);
+        }
+    }
+    
+    // Función para eliminar cliente
+    async function eliminarCliente(id) {
+        if (!confirm('¿Estás seguro de eliminar este cliente?')) {
+            return;
+        }
+        
+        try {
+            await deleteCliente(id);
+            alert('✅ Cliente eliminado exitosamente');
+            cargarClientes();
+        } catch (error) {
+            alert('❌ Error al eliminar: ' + error.message);
+        }
+    }
+</script>
+</body>
+</html>

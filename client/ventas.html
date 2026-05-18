@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ventas - Sistema de Gestión de Ventas</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <style>
+        .venta-form {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .cliente-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        
+        .producto-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .producto-item input {
+            flex: 1;
+        }
+        
+        .resumen-venta {
+            background: #667eea;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .resumen-venta h3 {
+            margin: 0 0 15px 0;
+        }
+        
+        .resumen-line {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 5px 0;
+        }
+        
+        .resumen-total {
+            font-size: 24px;
+            font-weight: bold;
+            border-top: 2px solid white;
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <nav class="sidebar">
+            <div class="logo">
+                <h2>🛒 Ventas</h2>
+            </div>
+            <ul class="menu">
+                <li><a href="dashboard.html">📊 Dashboard</a></li>
+                <li><a href="clientes.html">👥 Clientes</a></li>
+                <li><a href="inventario.html">📦 Inventario</a></li>
+                <li class="active"><a href="ventas.html">💰 Ventas</a></li>
+                <li><a href="caja.html">💵 Caja</a></li>
+            </ul>
+            <div class="user-info">
+                <p id="userName"></p>
+                <button onclick="logout()" class="btn-logout">Cerrar Sesión</button>
+            </div>
+        </nav>
+        
+        <main class="main-content">
+            <header>
+                <h1>Registrar Venta</h1>
+            </header>
+            
+            <div class="venta-form">
+                <h3>1. Buscar o Registrar Cliente</h3>
+                
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label for="cedulaCliente">Cédula del Cliente</label>
+                        <input type="text" id="cedulaCliente" placeholder="Ingrese la cédula">
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: flex-end;">
+                        <button onclick="buscarCliente()" class="btn-primary">🔍 Buscar</button>
+                    </div>
+                </div>
+                
+                <div id="clienteInfo" class="cliente-info" style="display: none;">
+                    <h4>Cliente Seleccionado:</h4>
+                    <p id="clienteNombre"></p>
+                    <input type="hidden" id="clienteId">
+                </div>
+                
+                <div id="formNuevoCliente" style="display: none; margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 5px;">
+                    <h4>Registrar Nuevo Cliente</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nuevoNombre">Nombre Completo *</label>
+                            <input type="text" id="nuevoNombre" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="nuevoEmail">Email *</label>
+                            <input type="email" id="nuevoEmail" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nuevoTelefono">Teléfono *</label>
+                            <input type="tel" id="nuevoTelefono" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="nuevaCiudad">Ciudad *</label>
+                            <input type="text" id="nuevaCiudad" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="nuevaDireccion">Dirección *</label>
+                        <input type="text" id="nuevaDireccion" required>
+                    </div>
+                    <button onclick="registrarNuevoCliente()" class="btn-primary">Registrar Cliente</button>
+                </div>
+                
+                <hr style="margin: 30px 0;">
+                
+                <h3>2. Agregar Productos</h3>
+                
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label for="codigoProducto">Código del Producto</label>
+                        <input type="text" id="codigoProducto" placeholder="Ingrese el código">
+                    </div>
+                    <div class="form-group">
+                        <label for="cantidadProducto">Cantidad</label>
+                        <input type="number" id="cantidadProducto" min="1" value="1">
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: flex-end;">
+                        <button onclick="agregarProducto()" class="btn-primary">+ Agregar</button>
+                    </div>
+                </div>
+                
+                <div id="listaProductos" style="margin-top: 20px;">
+                    <!-- Productos agregados aparecerán aquí -->
+                </div>
+                
+                <hr style="margin: 30px 0;">
+                
+                <h3>3. Método de Pago</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="metodoPago">Método de Pago</label>
+                        <select id="metodoPago">
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Tarjeta">Tarjeta</option>
+                            <option value="Transferencia">Transferencia</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="aplicarImpuesto">
+                            Aplicar Impuesto (19%)
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="resumen-venta">
+                    <h3>Resumen de la Venta</h3>
+                    <div class="resumen-line">
+                        <span>Subtotal:</span>
+                        <span id="subtotalVenta">$0.00</span>
+                    </div>
+                    <div class="resumen-line" id="lineaImpuesto" style="display: none;">
+                        <span>Impuesto (19%):</span>
+                        <span id="impuestoVenta">$0.00</span>
+                    </div>
+                    <div class="resumen-line resumen-total">
+                        <span>TOTAL:</span>
+                        <span id="totalVenta">$0.00</span>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 30px; text-align: right;">
+                    <button onclick="limpiarVenta()" class="btn-secondary">Cancelar</button>
+                    <button onclick="realizarVenta()" class="btn-primary" style="padding: 15px 40px; font-size: 16px;">
+                        💰 Realizar Venta
+                    </button>
+                </div>
+            </div>
+            
+            <div id="mensaje" class="message"></div>
+        </main>
+    </div>
+  
+<script src="js/validaciones.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/clientes.js"></script>
+<script src="js/productos.js"></script>
+<script src="js/ventas.js"></script>
+
+
+    <script>
+        // Verificar autenticación
+        checkAuth();
+        
+        // Mostrar información del usuario
+        const user = getUser();
+        if (user) {
+            document.getElementById('userName').textContent = user.nombre;
+        }
+        
+        // Array para almacenar productos de la venta
+        let productosVenta = [];
+        
+        // Buscar cliente por cédula
+        async function buscarCliente() {
+            const cedula = document.getElementById('cedulaCliente').value.trim();
+            
+            if (!cedula) {
+                alert('Por favor ingresa una cédula');
+                return;
+            }
+            
+            try {
+                const response = await buscarClientePorCedula(cedula);
+                const cliente = response.data.cliente;
+                
+                // Mostrar información del cliente
+                document.getElementById('clienteId').value = cliente._id;
+                document.getElementById('clienteNombre').innerHTML = `
+                    <strong>${cliente.nombre}</strong><br>
+                    Cédula: ${cliente.cedula} | Tel: ${cliente.telefono}<br>
+                    Email: ${cliente.email}
+                `;
+                document.getElementById('clienteInfo').style.display = 'block';
+                document.getElementById('formNuevoCliente').style.display = 'none';
+                
+            } catch (error) {
+                // Cliente no encontrado, mostrar formulario de registro
+                document.getElementById('clienteInfo').style.display = 'none';
+                document.getElementById('formNuevoCliente').style.display = 'block';
+                alert('Cliente no encontrado. Por favor registra un nuevo cliente.');
+            }
+        }
+        
+        // Registrar nuevo cliente
+        async function registrarNuevoCliente() {
+            const cedula = document.getElementById('cedulaCliente').value.trim();
+            const nombre = document.getElementById('nuevoNombre').value.trim();
+            const email = document.getElementById('nuevoEmail').value.trim();
+            const telefono = document.getElementById('nuevoTelefono').value.trim();
+            const ciudad = document.getElementById('nuevaCiudad').value.trim();
+            const direccion = document.getElementById('nuevaDireccion').value.trim();
+            
+            if (!cedula || !nombre || !email || !telefono || !ciudad || !direccion) {
+                alert('Por favor completa todos los campos');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('cedula', cedula);
+            formData.append('nombre', nombre);
+            formData.append('email', email);
+            formData.append('telefono', telefono);
+            formData.append('ciudad', ciudad);
+            formData.append('direccion', direccion);
+            
+            try {
+                const response = await createCliente(formData);
+                const cliente = response.data.cliente;
+                
+                // Mostrar cliente registrado
+                document.getElementById('clienteId').value = cliente._id;
+                document.getElementById('clienteNombre').innerHTML = `
+                    <strong>${cliente.nombre}</strong><br>
+                    Cédula: ${cliente.cedula} | Tel: ${cliente.telefono}<br>
+                    Email: ${cliente.email}
+                `;
+                document.getElementById('clienteInfo').style.display = 'block';
+                document.getElementById('formNuevoCliente').style.display = 'none';
+                
+                alert('✅ Cliente registrado exitosamente');
+            } catch (error) {
+                alert('❌ Error al registrar cliente: ' + error.message);
+            }
+        }
+        
+        // Agregar producto a la venta
+        async function agregarProducto() {
+            const codigo = document.getElementById('codigoProducto').value.trim();
+            const cantidad = parseInt(document.getElementById('cantidadProducto').value);
+            
+            if (!codigo) {
+                alert('Por favor ingresa un código de producto');
+                return;
+            }
+            
+            if (!cantidad || cantidad < 1) {
+                alert('Por favor ingresa una cantidad válida');
+                return;
+            }
+            
+            try {
+                const response = await buscarProductoPorCodigo(codigo);
+                const producto = response?.data?.producto;
+
+if (!producto || !producto._id) {
+    alert('Producto no encontrado o respuesta inválida');
+    return;
+}
+                
+                // Verificar stock
+                if (producto.stock < cantidad) {
+                    alert(`Stock insuficiente. Disponible: ${producto.stock} unidades`);
+                    return;
+                }
+                
+                // Verificar si el producto ya está en la lista
+                const existe = productosVenta.find(p => p._id === producto._id);
+                if (existe) {
+                    alert('Este producto ya está en la lista');
+                    return;
+                }
+                
+                // Agregar producto
+                productosVenta.push({
+                    _id: producto._id,
+                    codigo: producto.codigo,
+                    nombre: producto.nombre,
+                    precio: producto.precio,
+                    cantidad: Number(cantidad),
+                    stock: producto.stock
+                });
+                
+                // Limpiar campos
+                document.getElementById('codigoProducto').value = '';
+                document.getElementById('cantidadProducto').value = '1';
+                
+                // Actualizar vista
+                actualizarListaProductos();
+                calcularTotal();
+                
+            } catch (error) {
+                alert('❌ ' + error.message);
+            }
+        }
+        
+        // Actualizar lista de productos
+        function actualizarListaProductos() {
+            const lista = document.getElementById('listaProductos');
+            
+            if (productosVenta.length === 0) {
+                lista.innerHTML = '<p style="text-align: center; color: #999;">No hay productos agregados</p>';
+                return;
+            }
+            
+            lista.innerHTML = '';
+            productosVenta.forEach((producto, index) => {
+                const div = document.createElement('div');
+                div.className = 'producto-item';
+                div.innerHTML = `
+                    <span style="flex: 2;"><strong>${producto.codigo}</strong> - ${producto.nombre}</span>
+                    <input type="number" min="1" max="${producto.stock}" value="${producto.cantidad}" 
+                           onchange="cambiarCantidad(${index}, this.value)" style="width: 80px;">
+                    <span style="width: 100px;">$${producto.precio.toFixed(2)}</span>
+                    <span style="width: 100px;"><strong>$${(producto.precio * producto.cantidad).toFixed(2)}</strong></span>
+                    <button onclick="eliminarProducto(${index})" class="btn-icon" title="Eliminar">🗑️</button>
+                `;
+                lista.appendChild(div);
+            });
+        }
+        
+        // Cambiar cantidad de producto
+        function cambiarCantidad(index, nuevaCantidad) {
+            nuevaCantidad = parseInt(nuevaCantidad);
+            
+            if (nuevaCantidad < 1) {
+                alert('La cantidad debe ser al menos 1');
+                actualizarListaProductos();
+                return;
+            }
+            
+            if (nuevaCantidad > productosVenta[index].stock) {
+                alert(`Stock insuficiente. Disponible: ${productosVenta[index].stock}`);
+                actualizarListaProductos();
+                return;
+            }
+            
+            productosVenta[index].cantidad = nuevaCantidad;
+            actualizarListaProductos();
+            calcularTotal();
+        }
+        
+        // Eliminar producto de la lista
+        function eliminarProducto(index) {
+            productosVenta.splice(index, 1);
+            actualizarListaProductos();
+            calcularTotal();
+        }
+        
+        // Calcular total
+        function calcularTotal() {
+            const aplicarImpuesto = document.getElementById('aplicarImpuesto').checked;
+            
+            const subtotal = productosVenta.reduce((sum, p) => sum + (p.precio * p.cantidad), 0);
+            const impuesto = aplicarImpuesto ? subtotal * 0.19 : 0;
+            const total = subtotal + impuesto;
+            
+            document.getElementById('subtotalVenta').textContent = `$${subtotal.toFixed(2)}`;
+            document.getElementById('impuestoVenta').textContent = `$${impuesto.toFixed(2)}`;
+            document.getElementById('totalVenta').textContent = `$${total.toFixed(2)}`;
+            
+            document.getElementById('lineaImpuesto').style.display = aplicarImpuesto ? 'flex' : 'none';
+        }
+        
+        // Escuchar cambios en el checkbox de impuesto
+        document.getElementById('aplicarImpuesto').addEventListener('change', calcularTotal);
+        
+        // Realizar venta
+        async function realizarVenta() {
+            const clienteId = document.getElementById('clienteId').value;
+            const metodoPago = document.getElementById('metodoPago').value;
+            const aplicarImpuesto = document.getElementById('aplicarImpuesto').checked;
+            
+            // Validaciones
+            if (!clienteId) {
+                alert('Por favor selecciona o registra un cliente');
+                return;
+            }
+            
+        if (!Array.isArray(productosVenta) || productosVenta.length === 0) {
+    alert('Por favor agrega al menos un producto');
+    return;
+}
+
+console.log("PRODUCTOS EN FRONT:", productosVenta);
+
+const items = productosVenta.map(p => ({
+    productoId: p._id || p.productoId,
+    cantidad: Number(p.cantidad || 1)
+}));
+
+console.log("ITEMS A ENVIAR:", items);
+
+if (items.length === 0) {
+    alert('Error: productos inválidos en la venta');
+    return;
+}
+const subtotal = productosVenta.reduce((sum, p) => sum + (p.precio * p.cantidad), 0);
+const impuesto = aplicarImpuesto ? subtotal * 0.19 : 0;
+const total = subtotal + impuesto;
+           const ventaData = {
+    clienteId,
+    productos: items,   
+    metodoPago,
+    aplicarImpuesto,
+    total
+};
+            
+            const mensajeDiv = document.getElementById('mensaje');
+            
+            try {
+                mensajeDiv.textContent = 'Procesando venta...';
+                mensajeDiv.className = 'message info';
+                mensajeDiv.style.display = 'block';
+                
+                const response = await createVenta(ventaData);
+                const venta = response.data.venta;
+                
+                mensajeDiv.textContent = `✅ Venta registrada exitosamente. Factura: ${venta.numeroFactura}`;
+                mensajeDiv.className = 'message success';
+                
+                // Descargar factura
+                if (response.data.facturaPDF) {
+                    setTimeout(() => {
+                        descargarFactura(venta._id);
+                    }, 1000);
+                }
+                
+                // Limpiar formulario
+                setTimeout(() => {
+                    limpiarVenta();
+                    mensajeDiv.style.display = 'none';
+                }, 3000);
+                
+            } catch (error) {
+                mensajeDiv.textContent = '❌ ' + error.message;
+                mensajeDiv.className = 'message error';
+            }
+        }
+        
+        // Descargar factura
+        async function descargarFactura(ventaId) {
+            try {
+                const token = getToken();
+                const response = await fetch(config.endpoints.ventas.descargarFactura(ventaId), {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al descargar la factura');
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Factura-${ventaId}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                console.error('Error al descargar factura:', error);
+            }
+        }
+        
+        // Limpiar venta
+        function limpiarVenta() {
+            document.getElementById('cedulaCliente').value = '';
+            document.getElementById('clienteId').value = '';
+            document.getElementById('clienteInfo').style.display = 'none';
+            document.getElementById('formNuevoCliente').style.display = 'none';
+            document.getElementById('codigoProducto').value = '';
+            document.getElementById('cantidadProducto').value = '1';
+            document.getElementById('metodoPago').value = 'Efectivo';
+            document.getElementById('aplicarImpuesto').checked = false;
+            productosVenta = [];
+            actualizarListaProductos();
+            calcularTotal();
+        }
+    </script>
+</body>
+</html>
