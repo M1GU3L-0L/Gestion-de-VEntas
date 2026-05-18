@@ -11,7 +11,11 @@ exports.getClientes = asyncHandler(async (req, res) => {
     .populate('creadoPor', 'nombre email')
     .sort({ createdAt: -1 });
 
-  successResponse(res, { clientes, total: clientes.length }, 'Clientes obtenidos exitosamente');
+  successResponse(
+    res,
+    { clientes, total: clientes.length },
+    'Clientes obtenidos exitosamente'
+  );
 });
 
 // @desc    Obtener un cliente por ID
@@ -32,9 +36,9 @@ exports.getCliente = asyncHandler(async (req, res) => {
 // @route   GET /api/clientes/buscar/:cedula
 // @access  Private
 exports.buscarPorCedula = asyncHandler(async (req, res) => {
-  const cliente = await Cliente.findOne({ 
+  const cliente = await Cliente.findOne({
     cedula: req.params.cedula,
-    activo: true 
+    activo: true
   }).populate('creadoPor', 'nombre email');
 
   if (!cliente) {
@@ -50,10 +54,32 @@ exports.buscarPorCedula = asyncHandler(async (req, res) => {
 exports.createCliente = asyncHandler(async (req, res) => {
   const { nombre, cedula, email, telefono, direccion, ciudad } = req.body;
 
-  // Verificar si ya existe un cliente con esa cédula
-  const clienteExiste = await Cliente.findOne({ cedula });
+  // Verificar cédula
+  const clienteExiste = await Cliente.findOne({
+    cedula,
+    activo: true
+  });
+
   if (clienteExiste) {
-    return errorResponse(res, 'Ya existe un cliente con esa cédula', 400);
+    return errorResponse(
+      res,
+      'Ya existe un cliente con esa cédula',
+      400
+    );
+  }
+
+  // Verificar email
+  const emailExiste = await Cliente.findOne({
+    email,
+    activo: true
+  });
+
+  if (emailExiste) {
+    return errorResponse(
+      res,
+      'Ya existe un cliente con ese email',
+      400
+    );
   }
 
   // Datos del cliente
@@ -67,7 +93,7 @@ exports.createCliente = asyncHandler(async (req, res) => {
     creadoPor: req.user.id
   };
 
-  // Si se subió un archivo
+  // Archivo PDF
   if (req.file) {
     clienteData.rutFile = {
       filename: req.file.filename,
@@ -79,7 +105,12 @@ exports.createCliente = asyncHandler(async (req, res) => {
 
   const cliente = await Cliente.create(clienteData);
 
-  successResponse(res, { cliente }, 'Cliente creado exitosamente', 201);
+  successResponse(
+    res,
+    { cliente },
+    'Cliente creado exitosamente',
+    201
+  );
 });
 
 // @desc    Actualizar cliente
@@ -94,11 +125,37 @@ exports.updateCliente = asyncHandler(async (req, res) => {
 
   const { nombre, cedula, email, telefono, direccion, ciudad } = req.body;
 
-  // Si se está cambiando la cédula, verificar que no exista otra
+  // Validar cédula
   if (cedula && cedula !== cliente.cedula) {
-    const cedulaExiste = await Cliente.findOne({ cedula });
+
+    const cedulaExiste = await Cliente.findOne({
+      cedula,
+      activo: true
+    });
+
     if (cedulaExiste) {
-      return errorResponse(res, 'Ya existe un cliente con esa cédula', 400);
+      return errorResponse(
+        res,
+        'Ya existe un cliente con esa cédula',
+        400
+      );
+    }
+  }
+
+  // Validar email
+  if (email && email !== cliente.email) {
+
+    const emailExiste = await Cliente.findOne({
+      email,
+      activo: true
+    });
+
+    if (emailExiste) {
+      return errorResponse(
+        res,
+        'Ya existe un cliente con ese email',
+        400
+      );
     }
   }
 
@@ -110,20 +167,23 @@ exports.updateCliente = asyncHandler(async (req, res) => {
   cliente.direccion = direccion || cliente.direccion;
   cliente.ciudad = ciudad || cliente.ciudad;
 
-  // Si se subió un nuevo archivo, eliminar el anterior
+  // Actualizar PDF
   if (req.file) {
-    // Eliminar archivo anterior si existe
+
+    // Eliminar archivo anterior
     if (cliente.rutFile && cliente.rutFile.path) {
       try {
         if (fs.existsSync(cliente.rutFile.path)) {
           fs.unlinkSync(cliente.rutFile.path);
         }
       } catch (error) {
-        console.error('Error al eliminar archivo anterior:', error);
+        console.error(
+          'Error al eliminar archivo anterior:',
+          error
+        );
       }
     }
 
-    // Guardar nuevo archivo
     cliente.rutFile = {
       filename: req.file.filename,
       path: req.file.path,
@@ -134,13 +194,18 @@ exports.updateCliente = asyncHandler(async (req, res) => {
 
   await cliente.save();
 
-  successResponse(res, { cliente }, 'Cliente actualizado exitosamente');
+  successResponse(
+    res,
+    { cliente },
+    'Cliente actualizado exitosamente'
+  );
 });
 
-// @desc    Eliminar cliente (soft delete)
+// @desc    Eliminar cliente
 // @route   DELETE /api/clientes/:id
 // @access  Private
 exports.deleteCliente = asyncHandler(async (req, res) => {
+
   const cliente = await Cliente.findById(req.params.id);
 
   if (!cliente) {
@@ -149,15 +214,21 @@ exports.deleteCliente = asyncHandler(async (req, res) => {
 
   // Soft delete
   cliente.activo = false;
+
   await cliente.save();
 
-  successResponse(res, null, 'Cliente eliminado exitosamente');
+  successResponse(
+    res,
+    null,
+    'Cliente eliminado exitosamente'
+  );
 });
 
-// @desc    Descargar RUT del cliente
+// @desc    Descargar RUT
 // @route   GET /api/clientes/:id/rut
 // @access  Private
 exports.descargarRut = asyncHandler(async (req, res) => {
+
   const cliente = await Cliente.findById(req.params.id);
 
   if (!cliente) {
@@ -165,7 +236,11 @@ exports.descargarRut = asyncHandler(async (req, res) => {
   }
 
   if (!cliente.rutFile || !cliente.rutFile.path) {
-    return errorResponse(res, 'El cliente no tiene RUT cargado', 404);
+    return errorResponse(
+      res,
+      'El cliente no tiene RUT cargado',
+      404
+    );
   }
 
   const filePath = path.resolve(cliente.rutFile.path);
@@ -174,5 +249,8 @@ exports.descargarRut = asyncHandler(async (req, res) => {
     return errorResponse(res, 'Archivo no encontrado', 404);
   }
 
-  res.download(filePath, `RUT-${cliente.cedula}.pdf`);
+  res.download(
+    filePath,
+    `RUT-${cliente.cedula}.pdf`
+  );
 });
