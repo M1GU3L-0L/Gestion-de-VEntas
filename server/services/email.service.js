@@ -4,9 +4,7 @@ const config = require('../config/config');
 class EmailService {
   constructor() {
     this.transporter = nodemailer.createTransport({
-      host: config.email.host,
-      port: 465,
-      secure: true,
+      service: 'gmail',
       auth: {
         user: config.email.user,
         pass: config.email.password
