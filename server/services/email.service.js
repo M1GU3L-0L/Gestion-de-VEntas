@@ -1,117 +1,71 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const config = require('../config/config');
 
-class EmailService {
-  constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: config.email.host,
-      port: config.email.port,
-      secure: false,
-      auth: {
-        user: config.email.user,
-        pass: config.email.password
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
-    });
-  }
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-  async sendEmail(options) {
-    const mailOptions = {
-      from: `Sistema de Ventas <${config.email.from}>`,
-      to: options.email,
-      subject: options.subject,
-      html: options.message
-    };
+class EmailService {
+
+  async sendResetPasswordEmail(email, resetToken) {
+
+    const resetUrl = `${config.frontendUrl}/reset-password.html?token=${resetToken}`;
 
     try {
-      const info = await this.transporter.sendMail(mailOptions);
-      console.log('✅ Email enviado:', info.messageId);
-      return info;
+
+      const response = await resend.emails.send({
+        from: 'Sistema Ventas <onboarding@resend.dev>',
+        to: email,
+        subject: 'Recuperación de Contraseña',
+        html: `
+          <div style="font-family: Arial, sans-serif;">
+            <h2>Recuperación de Contraseña</h2>
+
+            <p>Haz clic en el siguiente enlace para restablecer tu contraseña:</p>
+
+            <a href="${resetUrl}">
+              Restablecer Contraseña
+            </a>
+
+            <p>O copia este enlace:</p>
+
+            <p>${resetUrl}</p>
+          </div>
+        `
+      });
+
+      console.log('✅ Email enviado:', response);
+
+      return response;
+
     } catch (error) {
-      console.error('❌ Error al enviar email:', error);
-      throw new Error('Error al enviar el email de recuperación');
+
+      console.error('❌ Error enviando email:', error);
+
+      throw new Error('Error al enviar email');
+
     }
   }
 
-  async sendResetPasswordEmail(email, resetToken) {
-    const resetUrl = `${config.frontendUrl}/reset-password.html?token=${resetToken}`;
-
-    const message = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #667eea;">Recuperación de Contraseña</h2>
-
-        <p>Has solicitado restablecer tu contraseña.</p>
-
-        <p>Haz clic en el siguiente botón para restablecer tu contraseña:</p>
-
-        <a href="${resetUrl}" 
-           style="
-             display: inline-block;
-             padding: 12px 30px;
-             background-color: #667eea;
-             color: white;
-             text-decoration: none;
-             border-radius: 5px;
-             margin: 20px 0;
-           ">
-          Restablecer Contraseña
-        </a>
-
-        <p>O copia y pega este enlace en tu navegador:</p>
-
-        <p style="color: #666; word-break: break-all;">
-          ${resetUrl}
-        </p>
-
-        <p style="color: #999; font-size: 12px; margin-top: 30px;">
-          Este enlace expirará en 10 minutos.<br>
-          Si no solicitaste restablecer tu contraseña, ignora este correo.
-        </p>
-      </div>
-    `;
-
-    await this.sendEmail({
-      email,
-      subject: 'Recuperación de Contraseña - Sistema de Ventas',
-      message
-    });
-  }
-
   async sendWelcomeEmail(email, nombre) {
-    const message = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #667eea;">¡Bienvenido ${nombre}!</h2>
 
-        <p>
-          Tu cuenta ha sido creada exitosamente en el Sistema de Gestión de Ventas.
-        </p>
+    try {
 
-        <p>
-          Ya puedes iniciar sesión y comenzar a usar todas las funcionalidades del sistema.
-        </p>
+      const response = await resend.emails.send({
+        from: 'Sistema Ventas <onboarding@resend.dev>',
+        to: email,
+        subject: 'Bienvenido al Sistema',
+        html: `
+          <h2>Bienvenido ${nombre}</h2>
+          <p>Tu cuenta ha sido creada exitosamente.</p>
+        `
+      });
 
-        <a href="${config.frontendUrl}" 
-           style="
-             display: inline-block;
-             padding: 12px 30px;
-             background-color: #667eea;
-             color: white;
-             text-decoration: none;
-             border-radius: 5px;
-             margin: 20px 0;
-           ">
-          Ir al Sistema
-        </a>
-      </div>
-    `;
+      return response;
 
-    await this.sendEmail({
-      email,
-      subject: 'Bienvenido - Sistema de Ventas',
-      message
-    });
+    } catch (error) {
+
+      console.error(error);
+
+    }
   }
 }
 
