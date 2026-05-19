@@ -1,71 +1,73 @@
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 const config = require('../config/config');
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 class EmailService {
 
+  constructor() {
+
+    this.transporter = nodemailer.createTransport({
+      host: config.email.host,
+      port: config.email.port,
+      secure: false,
+      auth: {
+        user: config.email.user,
+        pass: config.email.password
+      }
+    });
+
+  }
+
+  async sendEmail(options) {
+
+    const mailOptions = {
+      from: `Sistema Ventas <${config.email.from}>`,
+      to: options.email,
+      subject: options.subject,
+      html: options.message
+    };
+
+    return await this.transporter.sendMail(mailOptions);
+
+  }
+
   async sendResetPasswordEmail(email, resetToken) {
 
-    const resetUrl = `${config.frontendUrl}/reset-password.html?token=${resetToken}`;
+    const resetUrl =
+      `${config.frontendUrl}/reset-password.html?token=${resetToken}`;
 
-    try {
+    const message = `
+      <h2>Recuperación de contraseña</h2>
 
-      const response = await resend.emails.send({
-        from: 'Sistema Ventas <onboarding@resend.dev>',
-        to: email,
-        subject: 'Recuperación de Contraseña',
-        html: `
-          <div style="font-family: Arial, sans-serif;">
-            <h2>Recuperación de Contraseña</h2>
+      <p>Haz clic en el siguiente enlace:</p>
 
-            <p>Haz clic en el siguiente enlace para restablecer tu contraseña:</p>
+      <a href="${resetUrl}">
+        Restablecer contraseña
+      </a>
 
-            <a href="${resetUrl}">
-              Restablecer Contraseña
-            </a>
+      <p>${resetUrl}</p>
+    `;
 
-            <p>O copia este enlace:</p>
+    return await this.sendEmail({
+      email,
+      subject: 'Recuperación de contraseña',
+      message
+    });
 
-            <p>${resetUrl}</p>
-          </div>
-        `
-      });
-
-      console.log('✅ Email enviado:', response);
-
-      return response;
-
-    } catch (error) {
-
-      console.error('❌ Error enviando email:', error);
-
-      throw new Error('Error al enviar email');
-
-    }
   }
 
   async sendWelcomeEmail(email, nombre) {
 
-    try {
+    const message = `
+      <h2>Bienvenido ${nombre}</h2>
+      <p>Tu cuenta fue creada exitosamente.</p>
+    `;
 
-      const response = await resend.emails.send({
-        from: 'Sistema Ventas <onboarding@resend.dev>',
-        to: email,
-        subject: 'Bienvenido al Sistema',
-        html: `
-          <h2>Bienvenido ${nombre}</h2>
-          <p>Tu cuenta ha sido creada exitosamente.</p>
-        `
-      });
+    return await this.sendEmail({
+      email,
+      subject: 'Bienvenido',
+      message
+    });
 
-      return response;
-
-    } catch (error) {
-
-      console.error(error);
-
-    }
   }
 }
 
